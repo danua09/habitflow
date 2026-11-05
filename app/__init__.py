@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from dotenv import load_dotenv
 from app.config import Config
 from app.extensions import db, login_manager, bcrypt, migrate, csrf
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(reports_bp)
 
     csrf.exempt(api_bp)
+    CORS(app, resources={r'/api/*': {'origins': '*'}})
 
     @app.context_processor
     def inject_notification_count():
