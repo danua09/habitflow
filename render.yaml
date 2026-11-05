@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: habitflow
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn run:app"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///data/habit_tracker.db
+      - key: PYTHON_VERSION
+        value: "3.13.4"
