@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Новый челлендж — HabitFlow{% endblock %}
+{% block page_title %}Новый челлендж{% endblock %}
+{% block page_subtitle %}Бросьте вызов {{ friend.username }}{% endblock %}
+
+{% block content %}
+<div style="max-width:500px;">
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="form-label">Название привычки</label>
+            <input type="text" name="habit_name" class="form-control" placeholder="Например: Бег каждый день" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="2" placeholder="Правила челленджа..."></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Длительность</label>
+            <select name="duration" class="form-select">
+                <option value="7">7 дней</option>
+                <option value="14">14 дней</option>
+                <option value="30">30 дней</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-lightning"></i> Отправить челлендж</button>
+        <a href="{{ url_for('social.index') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
+    </form>
+</div>
+{% endblock %}

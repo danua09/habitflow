@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель — HabitFlow{% endblock %}
+{% block page_title %}Панель администратора{% endblock %}
+{% block page_subtitle %}Управление платформой{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ total_users }}</div>
+        <div class="stat-label">пользователей</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--success)">{{ total_habits }}</div>
+        <div class="stat-label">привычек</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:#8b5cf6">{{ total_logs }}</div>
+        <div class="stat-label">выполнений</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h6 class="card-title">Пользователи</h6>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Email</th>
+                        <th>Роль</th>
+                        <th>Статус</th>
+                        <th>Регистрация</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr style="{{ 'opacity:0.5' if not user.is_active_user }}">
+                        <td>{{ user.id }}</td>
+                        <td>
+                            {{ user.username }}
+                            {% if user.id == current_user.id %}
+                                <span class="badge-role-admin" style="font-size:0.65rem">Вы</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--text-muted)">{{ user.email }}</td>
+                        <td>
+                            {% if current_user.is_admin and user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('admin.change_role', user_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="role" class="form-select form-select-sm" style="width:auto;display:inline"
+                                        onchange="this.form.submit()">
+                                    <option value="user" {{ 'selected' if user.role == 'user' }}>Пользователь</option>
+                                    <option value="moderator" {{ 'selected' if user.role == 'moderator' }}>Модератор</option>
+                                    <option value="admin" {{ 'selected' if user.role == 'admin' }}>Админ</option>
+                                </select>
+                            </form>
+                            {% else %}
+                                <span class="badge-role-{{ user.role }}">{{ user.role_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_active_user %}
+                                <span class="badge-status-active">Активен</span>
+                            {% else %}
+                                <span class="badge-status-blocked">Заблокирован</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--text-muted)">{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                        <td>
+                            {% if current_user.is_admin and user.id != current_user.id %}
+                                <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-outline-{{ 'success' if not user.is_active_user else 'warning' }}"
+                                            title="{{ 'Разблокировать' if not user.is_active_user else 'Заблокировать' }}">
+                                        <i class="bi bi-{{ 'unlock' if not user.is_active_user else 'lock' }}"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline"
+                                      onsubmit="return confirm('Удалить пользователя {{ user.username }}? Все его данные будут потеряны.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-outline-danger" title="Удалить">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Аналитика — HabitFlow{% endblock %}
+{% block page_title %}Аналитика{% endblock %}
+{% block page_subtitle %}Подробный анализ привычек{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('reports.generate_pdf') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-file-pdf"></i> Скачать PDF-отчёт
+    </a>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent);">{{ week_stats.rate }}%</div>
+        <div class="stat-label">за неделю</div>
+        <div style="font-size:0.7rem;color:var(--text-light);">{{ week_stats.total_done }}/{{ week_stats.total_possible }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--success);">{{ month_stats.rate }}%</div>
+        <div class="stat-label">за месяц</div>
+        <div style="font-size:0.7rem;color:var(--text-light);">{{ month_stats.total_done }}/{{ month_stats.total_possible }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:{% if comparison.diff >= 0 %}var(--success){% else %}var(--danger){% endif %};">
+            {% if comparison.diff > 0 %}+{% endif %}{{ comparison.diff }}%
+        </div>
+        <div class="stat-label">динамика</div>
+        <div style="font-size:0.7rem;color:var(--text-light);">vs прошлый месяц</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:#8b5cf6;">{{ total_logs }}</div>
+        <div class="stat-label">всего выполнений</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-graph-up-arrow" style="color:var(--accent);"></i> Сравнение периодов</h5>
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div style="flex:1;">
+                        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">Текущий месяц</div>
+                        <div class="progress" style="height:10px;">
+                            <div class="progress-bar" style="width:{{ comparison.current }}%;background:var(--accent);"></div>
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">{{ comparison.current }}%</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div style="flex:1;">
+                        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">Прошлый месяц</div>
+                        <div class="progress" style="height:10px;">
+                            <div class="progress-bar" style="width:{{ comparison.previous }}%;background:var(--text-light);"></div>
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">{{ comparison.previous }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-lightbulb" style="color:#f59e0b;"></i> Рекомендации</h5>
+                {% for rec in recommendations %}
+                <div class="d-flex align-items-start gap-2 mb-3">
+                    <i class="bi bi-{{ rec.icon }}" style="color:{{ rec.color }};font-size:1.1rem;flex-shrink:0;margin-top:2px;"></i>
+                    <div style="font-size:0.85rem;color:var(--text-body);">{{ rec.text }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if habit_rankings %}
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-bar-chart" style="color:var(--accent);"></i> Рейтинг привычек</h5>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Привычка</th>
+                        <th>7 дней</th>
+                        <th>30 дней</th>
+                        <th>Серия</th>
+                        <th>Лучшая</th>
+                        <th>Прогресс</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in habit_rankings %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ r.habit.color }};margin-right:6px;"></span>
+                            {{ r.habit.name }}
+                        </td>
+                        <td>{{ r.rate_7 }}%</td>
+                        <td>{{ r.rate_30 }}%</td>
+                        <td><i class="bi bi-fire" style="color:var(--accent);"></i> {{ r.streak }}</td>
+                        <td>{{ r.best_streak }}</td>
+                        <td style="width:120px;">
+                            <div class="progress" style="height:6px;">
+                                <div class="progress-bar" style="width:{{ r.rate_30 }}%;background:{{ r.habit.color }};"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if forecast %}
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-compass" style="color:#8b5cf6;"></i> Прогноз целей</h5>
+        {% for f in forecast %}
+        <div class="d-flex align-items-center gap-3 mb-3 p-2" style="border-radius:8px;background:{% if f.on_track %}var(--success-light){% else %}var(--danger-light){% endif %};">
+            <div style="flex:1;">
+                <div style="font-weight:500;color:var(--text-dark);font-size:0.9rem;">{{ f.goal.title }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">
+                    Прогресс: {{ f.progress }}%
+                    {% if f.days_left is not none %} · Осталось {{ f.days_left }} дн.{% endif %}
+                </div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:500;">
+                {% if f.on_track %}
+                <span style="color:var(--success);"><i class="bi bi-check-circle"></i> В графике</span>
+                {% else %}
+                <span style="color:var(--danger);"><i class="bi bi-exclamation-circle"></i> Отстаёт</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="stat-grid mt-4">
+    <div class="stat-card">
+        <div class="stat-value" style="color:#eab308;">{{ achievements_earned }}</div>
+        <div class="stat-label">достижений</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--success);">{{ goals_completed }}</div>
+        <div class="stat-label">целей выполнено</div>
+    </div>
+</div>
+{% endblock %}

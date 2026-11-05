@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Шаблоны — HabitFlow{% endblock %}
+{% block page_title %}Шаблоны привычек{% endblock %}
+{% block page_subtitle %}Готовые наборы для быстрого старта{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <a href="{{ url_for('templates.create') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Создать шаблон
+    </a>
+</div>
+
+{% if public_templates %}
+<h6 style="color:var(--text-muted);margin-bottom:12px">Публичные шаблоны</h6>
+<div class="row g-3 mb-4">
+    {% for t in public_templates %}
+    <div class="col-md-4 col-sm-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="template-icon" style="background:{{ t.color }}20;color:{{ t.color }}">
+                        <i class="bi bi-{{ t.icon }}"></i>
+                    </div>
+                    <h6 class="fw-semibold mb-0" style="color:var(--text-dark)">{{ t.name }}</h6>
+                </div>
+                {% if t.description %}
+                    <p class="small mb-2" style="color:var(--text-muted)">{{ t.description[:100] }}</p>
+                {% endif %}
+                <div class="d-flex align-items-center justify-content-between">
+                    <small style="color:var(--text-light)">{{ t.items.count() }} привычек</small>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('templates.view', template_id=t.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('templates.apply', template_id=t.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-primary" title="Применить">
+                                <i class="bi bi-download"></i> Применить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if my_templates %}
+<h6 style="color:var(--text-muted);margin-bottom:12px">Мои шаблоны</h6>
+<div class="row g-3 mb-4">
+    {% for t in my_templates %}
+    <div class="col-md-4 col-sm-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="template-icon" style="background:{{ t.color }}20;color:{{ t.color }}">
+                        <i class="bi bi-{{ t.icon }}"></i>
+                    </div>
+                    <h6 class="fw-semibold mb-0" style="color:var(--text-dark)">{{ t.name }}</h6>
+                </div>
+                {% if t.description %}
+                    <p class="small mb-2" style="color:var(--text-muted)">{{ t.description[:100] }}</p>
+                {% endif %}
+                <div class="d-flex align-items-center justify-content-between">
+                    <small style="color:var(--text-light)">{{ t.items.count() }} привычек</small>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('templates.view', template_id=t.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('templates.apply', template_id=t.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-primary" title="Применить">
+                                <i class="bi bi-download"></i>
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('templates.delete', template_id=t.id) }}"
+                              class="d-inline" onsubmit="return confirm('Удалить шаблон?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not public_templates and not my_templates %}
+<div class="text-center py-5">
+    <i class="bi bi-collection" style="font-size:2.5rem;color:var(--text-light)"></i>
+    <p style="color:var(--text-muted);margin-top:12px">Шаблонов пока нет.</p>
+    <a href="{{ url_for('templates.create') }}" class="btn btn-primary">Создать первый шаблон</a>
+</div>
+{% endif %}
+{% endblock %}

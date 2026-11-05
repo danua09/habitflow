@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }} — HabitFlow{% endblock %}
+{% block page_title %}Профиль {{ user.username }}{% endblock %}
+{% block page_subtitle %}Публичный профиль{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;">
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <div class="avatar mx-auto mb-3" style="width:64px;height:64px;font-size:1.5rem;">{{ user.username[0] | upper }}</div>
+            <h4 style="font-weight:600;color:var(--text-dark);">{{ user.username }}</h4>
+            {% if user.bio %}<p style="color:var(--text-muted);font-size:0.9rem;">{{ user.bio }}</p>{% endif %}
+            <div class="d-flex justify-content-center gap-2 mt-2">
+                <span class="badge-role-{{ user.role }}">{{ user.role_display }}</span>
+            </div>
+
+            {% if user.id != current_user.id %}
+            <div class="mt-3">
+                {% if is_friend %}
+                <span class="badge-category" style="background:var(--success-light);color:var(--success);"><i class="bi bi-check"></i> Друзья</span>
+                {% elif friendship and friendship.status == 'pending' %}
+                <span class="badge-category" style="background:var(--accent-light);color:#92400e;">Запрос отправлен</span>
+                {% else %}
+                <form method="POST" action="{{ url_for('social.add_friend', user_id=user.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Добавить в друзья</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value" style="color:var(--accent);">{{ habits_count }}</div>
+            <div class="stat-label">привычек</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color:var(--success);">{{ total_logs }}</div>
+            <div class="stat-label">выполнений</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color:#f97316;">{{ best_streak }}</div>
+            <div class="stat-label">лучшая серия</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color:#8b5cf6;">{{ achievements_count }}</div>
+            <div class="stat-label">достижений</div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('social.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Назад</a>
+</div>
+{% endblock %}

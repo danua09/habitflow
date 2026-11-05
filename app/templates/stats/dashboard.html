@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Статистика — HabitFlow{% endblock %}
+{% block page_title %}Статистика{% endblock %}
+{% block page_subtitle %}Обзор прогресса{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% set week_completed = week_data | sum(attribute='completed') %}
+{% set week_total = week_data | sum(attribute='total') %}
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ today_completed }}/{{ today_total }}</div>
+        <div class="stat-label">сегодня</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--success)">{{ week_completed }}/{{ week_total }}</div>
+        <div class="stat-label">за неделю</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:#8b5cf6">
+            {{ ((week_completed / week_total * 100) | round(1)) if week_total else 0 }}%
+        </div>
+        <div class="stat-label">процент за неделю</div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('stats.export_csv') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-download"></i> Экспорт CSV
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Активность за неделю</h6>
+                <canvas id="weekChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Сегодня</h6>
+                <canvas id="todayChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if habit_stats %}
+<div class="card">
+    <div class="card-body">
+        <h6 class="card-title">Привычки по выполнению</h6>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Привычка</th>
+                        <th>7 дней</th>
+                        <th>30 дней</th>
+                        <th>Серия</th>
+                        <th>Лучшая</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in habit_stats %}
+                    <tr>
+                        <td>
+                            <span class="d-inline-block rounded-circle me-2"
+                                  style="width:10px;height:10px;background:{{ s.habit.color }}"></span>
+                            {{ s.habit.name }}
+                        </td>
+                        <td>
+                            <div class="progress mb-1" style="width:80px">
+                                <div class="progress-bar" style="width:{{ s.rate_7 }}%;background:var(--accent)"></div>
+                            </div>
+                            <small style="color:var(--text-muted)">{{ s.rate_7 }}%</small>
+                        </td>
+                        <td>
+                            <div class="progress mb-1" style="width:80px">
+                                <div class="progress-bar" style="width:{{ s.rate_30 }}%;background:var(--success)"></div>
+                            </div>
+                            <small style="color:var(--text-muted)">{{ s.rate_30 }}%</small>
+                        </td>
+                        <td><i class="bi bi-fire" style="color:var(--accent)"></i> {{ s.streak }}</td>
+                        <td style="color:var(--text-muted)">{{ s.best_streak }}</td>
+                        <td>
+                            <a href="{{ url_for('stats.habit_detail', habit_id=s.habit.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-graph-up"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const weekData = {{ week_data | tojson }};
+new Chart(document.getElementById('weekChart'), {
+    type: 'bar',
+    data: {
+        labels: weekData.map(d => d.day),
+        datasets: [
+            { label: 'Выполнено', data: weekData.map(d => d.completed), backgroundColor: '#f59e0b' },
+            { label: 'Всего', data: weekData.map(d => d.total), backgroundColor: '#efe8db' }
+        ]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+new Chart(document.getElementById('todayChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Выполнено', 'Осталось'],
+        datasets: [{ data: [{{ today_completed }}, {{ today_total - today_completed }}], backgroundColor: ['#f59e0b', '#efe8db'] }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

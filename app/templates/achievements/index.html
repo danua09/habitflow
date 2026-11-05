@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Достижения — HabitFlow{% endblock %}
+{% block page_title %}Достижения{% endblock %}
+{% block page_subtitle %}{{ earned_count }} из {{ total }} получено{% endblock %}
+
+{% block content %}
+<div class="stat-grid" style="max-width:400px;margin-bottom:24px">
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ earned_count }}</div>
+        <div class="stat-label">получено</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--text-light)">{{ total - earned_count }}</div>
+        <div class="stat-label">осталось</div>
+    </div>
+</div>
+
+{% if earned %}
+<h6 style="color:var(--text-muted);margin-bottom:12px">Полученные</h6>
+<div class="row g-3 mb-4">
+    {% for item in earned %}
+    <div class="col-md-4 col-sm-6">
+        <div class="achievement-card earned">
+            <div class="achievement-icon" style="background:{{ item.achievement.color }}20;color:{{ item.achievement.color }}">
+                <i class="bi bi-{{ item.achievement.icon }}"></i>
+            </div>
+            <div class="achievement-name">{{ item.achievement.name }}</div>
+            <div class="achievement-desc">{{ item.achievement.description }}</div>
+            <div class="achievement-date">{{ item.earned_at.strftime('%d.%m.%Y') }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if locked %}
+<h6 style="color:var(--text-muted);margin-bottom:12px">Заблокированные</h6>
+<div class="row g-3">
+    {% for a in locked %}
+    <div class="col-md-4 col-sm-6">
+        <div class="achievement-card locked">
+            <div class="achievement-icon" style="background:var(--border-light);color:var(--text-light)">
+                <i class="bi bi-lock"></i>
+            </div>
+            <div class="achievement-name">{{ a.name }}</div>
+            <div class="achievement-desc">{{ a.description }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

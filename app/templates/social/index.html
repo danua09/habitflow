@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Друзья — HabitFlow{% endblock %}
+{% block page_title %}Друзья{% endblock %}
+{% block page_subtitle %}Социальная активность{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4">
+    <a href="{{ url_for('social.search') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-search"></i> Найти людей
+    </a>
+</div>
+
+{% if incoming %}
+<div class="mb-4">
+    <h5 style="font-size:1rem;font-weight:600;color:var(--text-dark);">Входящие запросы</h5>
+    {% for req in incoming %}
+    <div class="habit-card">
+        <div class="avatar" style="width:32px;height:32px;font-size:0.75rem;">{{ req.user.username[0] | upper }}</div>
+        <div class="habit-info">
+            <div class="habit-name">{{ req.user.username }}</div>
+            <div class="badge-category" style="background:var(--accent-light);color:#92400e;">хочет дружить</div>
+        </div>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('social.accept_friend', friendship_id=req.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary btn-sm">Принять</button>
+            </form>
+            <form method="POST" action="{{ url_for('social.reject_friend', friendship_id=req.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary btn-sm">Отклонить</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if challenges %}
+<div class="mb-4">
+    <h5 style="font-size:1rem;font-weight:600;color:var(--text-dark);">Активные челленджи</h5>
+    {% for c in challenges %}
+    <div class="habit-card" style="border-left:3px solid #ef4444;">
+        <div class="habit-info">
+            <div class="habit-name">
+                <i class="bi bi-lightning-fill" style="color:#ef4444;"></i>
+                {{ c.habit_name }}
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">
+                {{ c.creator.username }} vs {{ c.opponent.username }}
+                {% if c.status == 'pending' %}<span class="badge-category" style="background:var(--accent-light);color:#92400e;">ожидает</span>{% endif %}
+                {% if c.status == 'active' %}<span class="badge-category" style="background:var(--success-light);color:var(--success);">активен</span>{% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if c.status == 'pending' and c.opponent_id == current_user.id %}
+            <form method="POST" action="{{ url_for('social.accept_challenge', challenge_id=c.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary btn-sm">Принять</button>
+            </form>
+            <form method="POST" action="{{ url_for('social.decline_challenge', challenge_id=c.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary btn-sm">Отклонить</button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('social.view_challenge', challenge_id=c.id) }}" class="btn btn-outline-primary btn-sm">Подробнее</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-5">
+        <h5 style="font-size:1rem;font-weight:600;color:var(--text-dark);">Мои друзья ({{ friends|length }})</h5>
+        {% if friends %}
+        {% for friend in friends %}
+        <div class="habit-card">
+            <a href="{{ url_for('social.public_profile', user_id=friend.id) }}" class="avatar" style="width:32px;height:32px;font-size:0.75rem;text-decoration:none;">{{ friend.username[0] | upper }}</a>
+            <div class="habit-info">
+                <a href="{{ url_for('social.public_profile', user_id=friend.id) }}" style="text-decoration:none;color:var(--text-dark);">
+                    <div class="habit-name">{{ friend.username }}</div>
+                </a>
+                {% if friend.bio %}<div style="font-size:0.75rem;color:var(--text-muted);">{{ friend.bio[:50] }}</div>{% endif %}
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('social.create_challenge', friend_id=friend.id) }}" class="btn btn-outline-primary btn-sm" title="Челлендж">
+                    <i class="bi bi-lightning"></i>
+                </a>
+                <form method="POST" action="{{ url_for('social.remove_friend', user_id=friend.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-secondary btn-sm" title="Удалить" onclick="return confirm('Удалить из друзей?')">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-4" style="color:var(--text-muted);">
+            <i class="bi bi-people" style="font-size:2rem;"></i>
+            <div class="mt-2">Пока нет друзей</div>
+            <a href="{{ url_for('social.search') }}" class="btn btn-primary btn-sm mt-2">Найти друзей</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-7">
+        <h5 style="font-size:1rem;font-weight:600;color:var(--text-dark);">Лента активности</h5>
+        {% if activities %}
+        <div class="notif-list">
+            {% for a in activities %}
+            <div class="notif-item">
+                <div class="notif-icon" style="background:var(--accent-light);color:var(--accent);">
+                    {% if a.action == 'check' %}<i class="bi bi-check-circle"></i>
+                    {% elif a.action == 'friend' %}<i class="bi bi-people-fill"></i>
+                    {% elif a.action == 'challenge' %}<i class="bi bi-lightning-fill"></i>
+                    {% else %}<i class="bi bi-activity"></i>{% endif %}
+                </div>
+                <div class="notif-content">
+                    <div class="notif-title">{{ a.user.username }}</div>
+                    <div class="notif-message">{{ a.description }}</div>
+                    <div class="notif-time">{{ a.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4" style="color:var(--text-muted);">
+            <i class="bi bi-rss" style="font-size:2rem;"></i>
+            <div class="mt-2">Лента пуста</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

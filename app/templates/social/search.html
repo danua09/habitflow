@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Поиск людей — HabitFlow{% endblock %}
+{% block page_title %}Поиск людей{% endblock %}
+{% block page_subtitle %}Найдите друзей по имени или email{% endblock %}
+
+{% block content %}
+<form method="GET" class="mb-4" style="max-width:400px;">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="Имя или email..." value="{{ query }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+    </div>
+</form>
+
+{% if query %}
+<p style="font-size:0.85rem;color:var(--text-muted);">Найдено: {{ users|length }}</p>
+{% endif %}
+
+{% for user in users %}
+<div class="habit-card">
+    <a href="{{ url_for('social.public_profile', user_id=user.id) }}" class="avatar" style="width:36px;height:36px;font-size:0.8rem;text-decoration:none;">{{ user.username[0] | upper }}</a>
+    <div class="habit-info">
+        <a href="{{ url_for('social.public_profile', user_id=user.id) }}" style="text-decoration:none;color:var(--text-dark);">
+            <div class="habit-name">{{ user.username }}</div>
+        </a>
+        {% if user.bio %}<div style="font-size:0.75rem;color:var(--text-muted);">{{ user.bio[:80] }}</div>{% endif %}
+    </div>
+    <form method="POST" action="{{ url_for('social.add_friend', user_id=user.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Добавить</button>
+    </form>
+</div>
+{% endfor %}
+
+{% if query and not users %}
+<div class="text-center py-4" style="color:var(--text-muted);">
+    <i class="bi bi-search" style="font-size:2rem;"></i>
+    <div class="mt-2">Публичных профилей не найдено</div>
+</div>
+{% endif %}
+
+<a href="{{ url_for('social.index') }}" class="btn btn-outline-secondary btn-sm mt-3"><i class="bi bi-arrow-left"></i> Назад</a>
+{% endblock %}

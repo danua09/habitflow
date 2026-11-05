@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Уведомления — HabitFlow{% endblock %}
+{% block page_title %}Уведомления{% endblock %}
+{% block page_subtitle %}Центр уведомлений{% endblock %}
+
+{% block content %}
+{% if notifications %}
+<div class="d-flex justify-content-end mb-3">
+    <form method="POST" action="{{ url_for('notifications.mark_all_read') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-check-all"></i> Прочитать все
+        </button>
+    </form>
+</div>
+
+<div class="notif-list">
+    {% for n in notifications %}
+    <div class="notif-item {{ '' if n.is_read else 'unread' }}">
+        <div class="notif-icon notif-type-{{ n.type }}">
+            {% if n.type == 'achievement' %}
+                <i class="bi bi-trophy"></i>
+            {% elif n.type == 'reminder' %}
+                <i class="bi bi-clock"></i>
+            {% elif n.type == 'deadline' %}
+                <i class="bi bi-exclamation-triangle"></i>
+            {% else %}
+                <i class="bi bi-bell"></i>
+            {% endif %}
+        </div>
+        <div class="notif-content">
+            <div class="notif-title">{{ n.title }}</div>
+            {% if n.message %}
+                <div class="notif-message">{{ n.message }}</div>
+            {% endif %}
+            <div class="notif-time">{{ n.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+        </div>
+        <div class="notif-actions">
+            {% if not n.is_read %}
+            <form method="POST" action="{{ url_for('notifications.mark_read', notif_id=n.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-secondary" title="Прочитано">
+                    <i class="bi bi-check"></i>
+                </button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('notifications.delete', notif_id=n.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-secondary" title="Удалить">
+                    <i class="bi bi-x"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-bell-slash" style="font-size:2.5rem;color:var(--text-light)"></i>
+    <p style="color:var(--text-muted);margin-top:12px">Уведомлений пока нет.</p>
+</div>
+{% endif %}
+{% endblock %}

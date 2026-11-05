@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Вход — HabitFlow{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card">
+    <div class="auth-title">
+        <i class="bi bi-check2-circle"></i>
+        Вход в HabitFlow
+    </div>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            {{ form.email(class="form-control", placeholder="email@example.com", id="email") }}
+            {% for error in form.email.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Пароль</label>
+            {{ form.password(class="form-control", placeholder="Введите пароль", id="password") }}
+            {% for error in form.password.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Войти</button>
+    </form>
+    <p class="text-center mt-3 mb-0" style="font-size:0.85rem;color:var(--text-muted)">
+        Нет аккаунта? <a href="{{ url_for('auth.register') }}" style="color:var(--accent)">Зарегистрироваться</a>
+    </p>
+</div>
+{% endblock %}

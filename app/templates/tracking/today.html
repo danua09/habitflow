@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Сегодня — HabitFlow{% endblock %}
+{% block page_title %}Сегодня{% endblock %}
+{% block page_subtitle %}{{ today.strftime('%d.%m.%Y, %A') }}{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--accent)">{{ completed }}/{{ total }}</div>
+        <div class="stat-label">выполнено</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:var(--success)">
+            {{ '%d' | format((completed / total * 100) if total else 0) }}%
+        </div>
+        <div class="stat-label">прогресс</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color:#8b5cf6">{{ total }}</div>
+        <div class="stat-label">привычек на сегодня</div>
+    </div>
+</div>
+
+{% if total > 0 %}
+<div class="progress mb-4">
+    <div class="progress-bar" style="width: {{ (completed / total * 100) if total else 0 }}%; background: var(--accent);"></div>
+</div>
+{% endif %}
+
+{% if habits %}
+    {% for item in habits %}
+    <div class="habit-card {% if item.completed %}completed{% endif %}">
+        <form method="POST" class="check-form"
+              action="{{ url_for('tracking.uncheck' if item.completed else 'tracking.check', habit_id=item.habit.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="check-btn">
+                {% if item.completed %}<i class="bi bi-check-lg"></i>{% endif %}
+            </button>
+        </form>
+        <div class="habit-info">
+            <div class="habit-name">{{ item.habit.name }}</div>
+            {% if item.habit.category %}
+                <span class="badge-category" style="background:{{ item.habit.category.color }}20;color:{{ item.habit.category.color }}">
+                    {{ item.habit.category.name }}
+                </span>
+            {% endif %}
+        </div>
+        <div class="habit-streak">
+            <div class="streak-value"><i class="bi bi-fire"></i> {{ item.streak }}</div>
+            <div class="streak-label">
+                <a href="{{ url_for('tracking.calendar', habit_id=item.habit.id) }}" style="color:var(--text-light);text-decoration:none">
+                    календарь
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-emoji-smile" style="font-size:2.5rem;color:var(--text-light)"></i>
+        <p style="color:var(--text-muted);margin-top:12px">На сегодня привычек нет.</p>
+        <a href="{{ url_for('habits.create') }}" class="btn btn-primary">Создать привычку</a>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.check-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const csrfToken = this.querySelector('[name=csrf_token]').value;
+        fetch(this.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken },
+        })
+        .then(r => r.json())
+        .then(() => location.reload());
+    });
+});
+</script>
+{% endblock %}

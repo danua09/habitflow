@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Профиль — HabitFlow{% endblock %}
+{% block page_title %}Профиль{% endblock %}
+{% block page_subtitle %}Настройки аккаунта{% endblock %}
+
+{% block content %}
+<div style="max-width:500px">
+    <div class="card mb-4">
+        <div class="card-body text-center py-4">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                 style="width:64px;height:64px;background:var(--accent);color:#fff;font-size:1.5rem;font-weight:700">
+                {{ current_user.username[0] | upper }}
+            </div>
+            <h5 style="color:var(--text-dark)">{{ current_user.username }}</h5>
+            <p style="color:var(--text-muted);margin-bottom:4px">{{ current_user.email }}</p>
+            {% if current_user.bio %}<p style="color:var(--text-body);font-size:0.85rem;margin-bottom:8px;">{{ current_user.bio }}</p>{% endif %}
+            <span class="badge-role-{{ current_user.role }}">{{ current_user.role_display }}</span>
+            {% if current_user.is_public %}<span class="badge-category" style="background:var(--success-light);color:var(--success);margin-left:4px;">Публичный</span>{% endif %}
+            <p class="small mt-2" style="color:var(--text-light)">
+                Зарегистрирован: {{ current_user.created_at.strftime('%d.%m.%Y') }}
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-title">Редактировать данные</h6>
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label for="username" class="form-label">Имя пользователя</label>
+                    {{ form.username(class="form-control", id="username") }}
+                    {% for error in form.username.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    {{ form.email(class="form-control", id="email") }}
+                    {% for error in form.email.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    <label for="bio" class="form-label">О себе</label>
+                    <textarea name="bio" id="bio" class="form-control" rows="2" maxlength="300" placeholder="Расскажите о себе...">{{ current_user.bio or '' }}</textarea>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_public" id="is_public" class="form-check-input"
+                           {% if current_user.is_public %}checked{% endif %}>
+                    <label for="is_public" class="form-check-label" style="font-size:0.85rem;">
+                        Публичный профиль <span style="color:var(--text-muted);">(виден в поиске друзей)</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-title"><i class="bi bi-key" style="color:var(--accent);"></i> API-доступ</h6>
+            {% if current_user.api_token %}
+            <div class="mb-2" style="font-size:0.8rem;color:var(--text-muted);">Ваш токен:</div>
+            <div class="p-2 mb-3" style="background:var(--bg-page);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.75rem;word-break:break-all;">
+                {{ current_user.api_token }}
+            </div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('profile.generate_token') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-arrow-repeat"></i> {% if current_user.api_token %}Обновить токен{% else %}Сгенерировать токен{% endif %}
+                </button>
+            </form>
+            <div class="mt-2" style="font-size:0.75rem;color:var(--text-light);">
+                Используйте токен для доступа к REST API: <code>Authorization: Bearer &lt;token&gt;</code>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{{ url_for('profile.change_password') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-key"></i> Сменить пароль
+        </a>
+    </div>
+</div>
+{% endblock %}
