@@ -1,16 +1,31 @@
-version: "3.8"
-
 services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: habitflow
+      POSTGRES_USER: habitflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habitflow -d habitflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   web:
     build: .
     ports:
       - "5000:5000"
-    volumes:
-      - db-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       - FLASK_ENV=production
-      - SECRET_KEY=change-me-in-production
-      - DATABASE_URL=sqlite:///data/habit_tracker.db
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY}
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=habitflow
+      - POSTGRES_USER=habitflow
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     restart: unless-stopped
 
 volumes:

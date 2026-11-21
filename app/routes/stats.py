@@ -34,7 +34,7 @@ def dashboard():
         total = 0
         day_key = day_map[d.weekday()]
         for h in habits:
-            if h.frequency == 'daily' or (h.frequency == 'weekly' and day_key in (h.target_days or [])):
+            if d >= h._start_date() and h.is_scheduled_on(d):
                 total += 1
                 if h.is_completed_on(d):
                     completed += 1

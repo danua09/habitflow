@@ -52,6 +52,11 @@
                         Публичный профиль <span style="color:var(--text-muted);">(виден в поиске друзей)</span>
                     </label>
                 </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="email_notifications" id="email_notifications" class="form-check-input" {% if current_user.email_notifications %}checked{% endif %}>
+                    <label for="email_notifications" class="form-check-label">Получать уведомления о событиях по электронной почте</label>
+                    {% if not mail_available %}<div class="small text-muted">Отправка писем пока не настроена администратором.</div>{% endif %}
+                </div>
                 <button type="submit" class="btn btn-primary">Сохранить</button>
             </form>
         </div>

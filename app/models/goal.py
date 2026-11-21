@@ -28,8 +28,11 @@ class Goal(db.Model):
         habits = self.habits.all()
         if not habits:
             return 0
-        total = sum(h.completion_rate(30) for h in habits)
-        return round(total / len(habits), 1)
+        start = self.created_at.date() if self.created_at else date.today()
+        totals = [h.completion_between(start, date.today()) for h in habits]
+        done = sum(item[0] for item in totals)
+        scheduled = sum(item[1] for item in totals)
+        return round(done / scheduled * 100, 1) if scheduled else 0
 
     @property
     def is_overdue(self):

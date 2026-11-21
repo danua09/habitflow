@@ -1,15 +1,24 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
-from app.config import Config
-from app.extensions import db, login_manager, bcrypt, migrate, csrf
 
 load_dotenv()
 
+from app.config import Config
+from app.extensions import db, login_manager, bcrypt, migrate, csrf
 
-def create_app():
+
+def create_app(config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(Config)
+    if config_overrides:
+        app.config.update(config_overrides)
+
+    if not app.testing and os.environ.get('FLASK_ENV') == 'production':
+        secret = app.config.get('SECRET_KEY') or ''
+        if secret == 'dev-secret-key' or len(secret) < 32:
+            raise RuntimeError('В рабочем окружении задайте SECRET_KEY длиной не менее 32 символов.')
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -56,10 +65,18 @@ def create_app():
     @app.context_processor
     def inject_notification_count():
         from flask_login import current_user
+        from app.mail import mail_configured
         if current_user.is_authenticated:
             from app.services import get_unread_count
-            return {'unread_notifications': get_unread_count(current_user.id)}
-        return {'unread_notifications': 0}
+            return {'unread_notifications': get_unread_count(current_user.id), 'mail_available': mail_configured()}
+        return {'unread_notifications': 0, 'mail_available': mail_configured()}
+
+    @app.after_request
+    def security_headers(response):
+        response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+        response.headers.setdefault('Referrer-Policy', 'no-referrer')
+        return response
 
     @app.route('/')
     def index():

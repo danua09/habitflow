@@ -9,16 +9,17 @@ class TestRegistration:
             'email': 'new@example.com',
             'username': 'newuser',
             'password': 'password123',
-            'password_confirm': 'password123',
+            'confirm_password': 'password123',
         }, follow_redirects=True)
         assert resp.status_code == 200
+        assert 'Привычки'.encode('utf-8') in resp.data
 
     def test_register_duplicate_email(self, client, user):
         resp = client.post('/auth/register', data={
             'email': 'test@example.com',
             'username': 'another',
             'password': 'password123',
-            'password_confirm': 'password123',
+            'confirm_password': 'password123',
         }, follow_redirects=True)
         assert 'Регистрация'.encode('utf-8') in resp.data
 

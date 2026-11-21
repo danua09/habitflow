@@ -42,6 +42,7 @@
                 </div>
                 {% endfor %}
             </div>
+            {% for error in form.target_days.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
         </div>
 
         <div class="mb-4">

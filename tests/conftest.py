@@ -1,4 +1,8 @@
 import pytest
+import os
+import re
+from datetime import datetime, timedelta, timezone
+from sqlalchemy.engine import make_url
 from app import create_app
 from app.extensions import db as _db, bcrypt
 from app.models.user import User, ROLE_USER, ROLE_ADMIN
@@ -9,10 +13,14 @@ from app.services import seed_achievements
 
 @pytest.fixture
 def app():
-    app = create_app()
-    app.config.update({
+    test_url = os.environ.get('HABITFLOW_TEST_DATABASE_URL', 'sqlite://')
+    if test_url != 'sqlite://':
+        url = make_url(test_url)
+        if url.get_backend_name() != 'postgresql' or not re.fullmatch(r'habitflow_test_[0-9a-f]{32}', url.database or ''):
+            raise RuntimeError('Тесты разрешены только на временной тестовой базе habitflow_test_<uuid>.')
+    app = create_app({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite://',
+        'SQLALCHEMY_DATABASE_URI': test_url,
         'WTF_CSRF_ENABLED': False,
         'SERVER_NAME': 'localhost',
     })
@@ -71,6 +79,7 @@ def habit(app, user, category):
         name='Утренняя зарядка',
         frequency='daily',
         color='#0d6efd',
+        created_at=datetime.now(timezone.utc) - timedelta(days=30),
     )
     _db.session.add(h)
     _db.session.flush()

@@ -13,10 +13,12 @@ venv/
 
 # Environment variables
 .env
+.demo-credentials
 
 # Database
 *.db
 *.sqlite3
+*.dump
 
 # IDE
 .vscode/

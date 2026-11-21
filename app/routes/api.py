@@ -1,5 +1,6 @@
 from functools import wraps
 from datetime import date, timedelta
+import re
 from flask import Blueprint, jsonify, request
 from app.extensions import db
 from app.models.user import User
@@ -9,6 +10,37 @@ from app.models.category import Category
 from app.models.achievement import Achievement, UserAchievement
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
+
+
+def validate_habit(data, user, habit=None):
+    if not isinstance(data, dict):
+        return 'Ожидается JSON-объект'
+    allowed = {'name', 'description', 'category_id', 'frequency', 'target_days', 'color', 'is_archived'}
+    if set(data) - allowed:
+        return 'Неизвестное поле'
+    name = data.get('name', habit.name if habit else None)
+    if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100:
+        return 'Название должно содержать от 1 до 100 символов'
+    description = data.get('description', habit.description if habit else '')
+    if not isinstance(description, str) or len(description) > 500:
+        return 'Описание должно быть строкой длиной до 500 символов'
+    frequency = data.get('frequency', habit.frequency if habit else 'daily')
+    days = data.get('target_days', habit.target_days if habit else []) or []
+    if frequency not in ('daily', 'weekly'):
+        return 'Недопустимая периодичность'
+    if not isinstance(days, list) or any(not isinstance(d, str) or d not in ('mon','tue','wed','thu','fri','sat','sun') for d in days) or len(days) != len(set(days)):
+        return 'Недопустимые дни недели'
+    if frequency == 'weekly' and not days:
+        return 'Выберите хотя бы один день недели'
+    color = data.get('color', habit.color if habit else '#0d6efd')
+    if not isinstance(color, str) or not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+        return 'Недопустимый цвет'
+    if 'is_archived' in data and not isinstance(data['is_archived'], bool):
+        return 'is_archived должен быть логическим значением'
+    category = data.get('category_id', habit.category_id if habit else None)
+    if category is not None and (type(category) is not int or not Category.query.filter_by(id=category, user_id=user.id).first()):
+        return 'Категория не найдена'
+    return None
 
 
 def token_required(f):
@@ -27,9 +59,11 @@ def token_required(f):
 
 @api_bp.route('/auth/token', methods=['POST'])
 def get_token():
-    data = request.get_json()
-    if not data or 'email' not in data or 'password' not in data:
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('email'), str) or not isinstance(data.get('password'), str):
         return jsonify({'error': 'Требуются email и password'}), 400
+    if len(data['password'].encode('utf-8')) > 72:
+        return jsonify({'error': 'Неверные учётные данные'}), 401
 
     user = User.query.filter_by(email=data['email']).first()
     if not user:
@@ -66,19 +100,15 @@ def list_habits(user):
 @api_bp.route('/habits', methods=['POST'])
 @token_required
 def create_habit(user):
-    data = request.get_json()
-    if not data or not data.get('name'):
-        return jsonify({'error': 'Название обязательно'}), 400
+    data = request.get_json(silent=True)
+    error = validate_habit(data, user)
+    if error:
+        return jsonify({'error': error}), 400
 
     category_id = data.get('category_id')
-    if category_id:
-        cat = Category.query.filter_by(id=category_id, user_id=user.id).first()
-        if not cat:
-            return jsonify({'error': 'Категория не найдена'}), 404
-
     habit = Habit(
         user_id=user.id,
-        name=data['name'],
+        name=data['name'].strip(),
         description=data.get('description', ''),
         category_id=category_id,
         frequency=data.get('frequency', 'daily'),
@@ -110,17 +140,20 @@ def update_habit(user, habit_id):
     if not habit:
         return jsonify({'error': 'Привычка не найдена'}), 404
 
-    data = request.get_json()
-    if data.get('name'):
-        habit.name = data['name']
+    data = request.get_json(silent=True)
+    error = validate_habit(data, user, habit)
+    if error:
+        return jsonify({'error': error}), 400
+    if 'name' in data:
+        habit.name = data['name'].strip()
     if 'description' in data:
         habit.description = data['description']
-    if 'frequency' in data:
-        habit.frequency = data['frequency']
-    if 'target_days' in data:
-        habit.target_days = data['target_days']
+    if 'frequency' in data or 'target_days' in data:
+        habit.change_schedule(data.get('frequency', habit.frequency), data.get('target_days', habit.target_days))
     if 'color' in data:
         habit.color = data['color']
+    if 'category_id' in data:
+        habit.category_id = data['category_id']
     if 'is_archived' in data:
         habit.is_archived = data['is_archived']
 
@@ -148,12 +181,16 @@ def check_habit(user, habit_id):
     if not habit:
         return jsonify({'error': 'Привычка не найдена'}), 404
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Ожидается JSON-объект'}), 400
     check_date = date.today()
     if data.get('date'):
         try:
             check_date = date.fromisoformat(data['date'])
-        except ValueError:
+        except (ValueError, TypeError):
             return jsonify({'error': 'Неверный формат даты'}), 400
 
     existing = HabitLog.query.filter_by(habit_id=habit.id, date=check_date).first()
@@ -177,12 +214,16 @@ def uncheck_habit(user, habit_id):
     if not habit:
         return jsonify({'error': 'Привычка не найдена'}), 404
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Ожидается JSON-объект'}), 400
     check_date = date.today()
     if data.get('date'):
         try:
             check_date = date.fromisoformat(data['date'])
-        except ValueError:
+        except (ValueError, TypeError):
             return jsonify({'error': 'Неверный формат даты'}), 400
 
     log = HabitLog.query.filter_by(habit_id=habit.id, date=check_date).first()

@@ -29,7 +29,8 @@ def today():
     total_count = len(today_habits)
 
     return render_template('tracking/today.html', habits=today_habits,
-                           today=today_date, completed=completed_count, total=total_count)
+                           today=today_date, completed=completed_count, total=total_count,
+                           has_any_habits=bool(habits))
 
 
 @tracking_bp.route('/check/<int:habit_id>', methods=['POST'])

@@ -66,8 +66,7 @@ def edit(habit_id):
         habit.name = form.name.data
         habit.description = form.description.data
         habit.category_id = form.category_id.data or None
-        habit.frequency = form.frequency.data
-        habit.target_days = form.target_days.data if form.frequency.data == 'weekly' else []
+        habit.change_schedule(form.frequency.data, form.target_days.data)
         habit.color = form.color.data
         db.session.commit()
         flash('Привычка обновлена!', 'success')

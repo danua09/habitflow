@@ -229,7 +229,7 @@ def accept_challenge(challenge_id):
     today = date.today()
     c.status = 'active'
     c.start_date = today
-    c.end_date = today + timedelta(days=c.duration_days)
+    c.end_date = today + timedelta(days=c.duration_days - 1)
 
     for user_id in (c.creator_id, c.opponent_id):
         existing = Habit.query.filter_by(user_id=user_id, name=c.habit_name).first()

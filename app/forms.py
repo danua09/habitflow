@@ -1,31 +1,45 @@
 from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, TextAreaField, SelectField,
                      BooleanField, DateField, SelectMultipleField)
-from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
+from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional, ValidationError, Regexp
 from wtforms.widgets import CheckboxInput, ListWidget
 
 
+def bcrypt_length(form, field):
+    if len(field.data.encode('utf-8')) > 72:
+        raise ValidationError('Пароль слишком длинный: максимум 72 байта в UTF-8.')
+
+
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Пароль', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
+    password = PasswordField('Пароль', validators=[DataRequired(), bcrypt_length])
+
+
+class PasswordResetRequestForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
+
+
+class PasswordResetForm(FlaskForm):
+    password = PasswordField('Новый пароль', validators=[DataRequired(), Length(min=6, max=72), bcrypt_length])
+    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired(), EqualTo('password')])
 
 
 class RegisterForm(FlaskForm):
     username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=3, max=80)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6)])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
+    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6, max=72), bcrypt_length])
     confirm_password = PasswordField('Подтвердите пароль',
                                      validators=[DataRequired(), EqualTo('password', message='Пароли не совпадают')])
 
 
 class ProfileForm(FlaskForm):
     username = StringField('Имя пользователя', validators=[DataRequired(), Length(min=3, max=80)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
 
 
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField('Текущий пароль', validators=[DataRequired()])
-    new_password = PasswordField('Новый пароль', validators=[DataRequired(), Length(min=6)])
+    new_password = PasswordField('Новый пароль', validators=[DataRequired(), Length(min=6, max=72), bcrypt_length])
     confirm_password = PasswordField('Подтвердите пароль',
                                      validators=[DataRequired(), EqualTo('new_password')])
 
@@ -47,13 +61,17 @@ class HabitForm(FlaskForm):
     target_days = SelectMultipleField('Дни недели', choices=DAYS_CHOICES,
                                       widget=ListWidget(prefix_label=False),
                                       option_widget=CheckboxInput())
-    color = StringField('Цвет', default='#0d6efd')
+    color = StringField('Цвет', default='#0d6efd', validators=[DataRequired(), Regexp(r'^#[0-9a-fA-F]{6}$')])
+
+    def validate_target_days(self, field):
+        if self.frequency.data == 'weekly' and not field.data:
+            raise ValidationError('Выберите хотя бы один день недели.')
 
 
 class CategoryForm(FlaskForm):
     name = StringField('Название', validators=[DataRequired(), Length(max=50)])
-    icon = StringField('Иконка', default='folder')
-    color = StringField('Цвет', default='#6c757d')
+    icon = StringField('Иконка', default='folder', validators=[Optional(), Length(max=50)])
+    color = StringField('Цвет', default='#6c757d', validators=[DataRequired(), Regexp(r'^#[0-9a-fA-F]{6}$')])
 
 
 class GoalForm(FlaskForm):

@@ -1,9 +1,14 @@
 venv/
+.venv/
+.pytest_cache/
 __pycache__/
 *.pyc
 *.db
+*.sqlite3
+*.dump
 .git/
 .gitignore
 .claude/
 .env
+.demo-credentials
 *.egg-info/

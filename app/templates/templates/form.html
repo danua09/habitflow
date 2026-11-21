@@ -67,6 +67,11 @@
                             </button>
                         </div>
                     </div>
+                    <div class="template-days d-flex gap-2 flex-wrap mt-2">
+                        {% for value, label in [('mon','Пн'),('tue','Вт'),('wed','Ср'),('thu','Чт'),('fri','Пт'),('sat','Сб'),('sun','Вс')] %}
+                        <label><input type="checkbox" name="habit_days_0" value="{{ value }}"> {{ label }}</label>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -91,6 +96,7 @@ document.getElementById('addHabit').addEventListener('click', function() {
     row.querySelector('input[name="habit_name"]').value = '';
     row.querySelector('input[name="habit_color"]').value = '#0d6efd';
     row.querySelector('select[name="habit_frequency"]').value = 'daily';
+    row.querySelectorAll('.template-days input').forEach(input => input.checked = false);
     container.appendChild(row);
     bindRemove();
 });
@@ -105,5 +111,10 @@ function bindRemove() {
     });
 }
 bindRemove();
+document.getElementById('templateForm').addEventListener('submit', function() {
+    document.querySelectorAll('.template-habit-row').forEach(function(row, index) {
+        row.querySelectorAll('.template-days input').forEach(input => input.name = 'habit_days_' + index);
+    });
+});
 </script>
 {% endblock %}

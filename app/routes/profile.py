@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user
 from app.extensions import db, bcrypt
 from app.models.user import User
 from app.forms import ProfileForm, ChangePasswordForm
@@ -27,6 +27,7 @@ def index():
         current_user.email = form.email.data
         current_user.bio = request.form.get('bio', '').strip()[:300]
         current_user.is_public = 'is_public' in request.form
+        current_user.email_notifications = 'email_notifications' in request.form
         db.session.commit()
         flash('Профиль обновлён!', 'success')
         return redirect(url_for('profile.index'))
@@ -45,7 +46,9 @@ def change_password():
             return render_template('profile/password.html', form=form)
 
         current_user.password_hash = bcrypt.generate_password_hash(form.new_password.data).decode('utf-8')
+        current_user.api_token = None
         db.session.commit()
+        login_user(current_user)
         flash('Пароль изменён!', 'success')
         return redirect(url_for('profile.index'))
 

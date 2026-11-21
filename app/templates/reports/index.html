@@ -122,22 +122,15 @@
 {% if forecast %}
 <div class="card mt-4">
     <div class="card-body">
-        <h5 class="card-title"><i class="bi bi-compass" style="color:#8b5cf6;"></i> Прогноз целей</h5>
+        <h5 class="card-title"><i class="bi bi-compass" style="color:#8b5cf6;"></i> Выполнение целей</h5>
         {% for f in forecast %}
-        <div class="d-flex align-items-center gap-3 mb-3 p-2" style="border-radius:8px;background:{% if f.on_track %}var(--success-light){% else %}var(--danger-light){% endif %};">
+        <div class="d-flex align-items-center gap-3 mb-3 p-2" style="border-radius:8px;background:var(--border-light);">
             <div style="flex:1;">
                 <div style="font-weight:500;color:var(--text-dark);font-size:0.9rem;">{{ f.goal.title }}</div>
                 <div style="font-size:0.75rem;color:var(--text-muted);">
-                    Прогресс: {{ f.progress }}%
-                    {% if f.days_left is not none %} · Осталось {{ f.days_left }} дн.{% endif %}
+                    Выполнение привычек: {{ f.progress }}%
+                    {% if f.days_left is not none and f.days_left >= 0 %} · Осталось {{ f.days_left }} дн.{% elif f.days_left is not none %} · Срок прошёл{% endif %}
                 </div>
-            </div>
-            <div style="font-size:0.8rem;font-weight:500;">
-                {% if f.on_track %}
-                <span style="color:var(--success);"><i class="bi bi-check-circle"></i> В графике</span>
-                {% else %}
-                <span style="color:var(--danger);"><i class="bi bi-exclamation-circle"></i> Отстаёт</span>
-                {% endif %}
             </div>
         </div>
         {% endfor %}

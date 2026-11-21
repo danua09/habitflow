@@ -35,6 +35,16 @@ def create():
             flash('Название обязательно.', 'danger')
             return redirect(url_for('templates.create'))
 
+        habit_names = request.form.getlist('habit_name')
+        habit_frequencies = request.form.getlist('habit_frequency')
+        for i, h_name in enumerate(habit_names):
+            freq = habit_frequencies[i] if i < len(habit_frequencies) else 'daily'
+            days = request.form.getlist(f'habit_days_{i}')
+            if h_name.strip() and (freq not in ('daily', 'weekly') or
+                                   (freq == 'weekly' and (not days or any(d not in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun') for d in days)))):
+                flash('Для привычки по дням недели выберите дни.', 'danger')
+                return redirect(url_for('templates.create'))
+
         template = HabitTemplate(
             name=name, description=description, icon=icon,
             color=color, is_public=is_public, created_by=current_user.id,
@@ -42,8 +52,6 @@ def create():
         db.session.add(template)
         db.session.flush()
 
-        habit_names = request.form.getlist('habit_name')
-        habit_frequencies = request.form.getlist('habit_frequency')
         habit_colors = request.form.getlist('habit_color')
 
         for i, h_name in enumerate(habit_names):
@@ -55,6 +63,7 @@ def create():
             item = TemplateHabit(
                 template_id=template.id, name=h_name,
                 frequency=freq, color=col,
+                target_days=request.form.getlist(f'habit_days_{i}') if freq == 'weekly' else [],
             )
             db.session.add(item)
 

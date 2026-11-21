@@ -5,6 +5,10 @@ from app.extensions import db, bcrypt
 from app.models.user import User, ROLE_USER, ROLE_MODERATOR, ROLE_ADMIN
 from app.models.habit import Habit
 from app.models.habit_log import HabitLog
+from app.models.notification import Notification
+from app.models.achievement import UserAchievement
+from app.models.template import HabitTemplate
+from app.models.social import Friendship, Challenge, ActivityLog
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -86,6 +90,13 @@ def delete_user(user_id):
         return redirect(url_for('admin.dashboard'))
 
     user = User.query.get_or_404(user_id)
+    for template in HabitTemplate.query.filter_by(created_by=user.id).all():
+        db.session.delete(template)
+    Notification.query.filter_by(user_id=user.id).delete()
+    UserAchievement.query.filter_by(user_id=user.id).delete()
+    ActivityLog.query.filter_by(user_id=user.id).delete()
+    Friendship.query.filter((Friendship.user_id == user.id) | (Friendship.friend_id == user.id)).delete(synchronize_session=False)
+    Challenge.query.filter((Challenge.creator_id == user.id) | (Challenge.opponent_id == user.id)).delete(synchronize_session=False)
     db.session.delete(user)
     db.session.commit()
     flash(f'Пользователь {user.username} удалён.', 'info')

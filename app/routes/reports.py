@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 from datetime import date, timedelta
 from flask import Blueprint, render_template, Response
 from flask_login import login_required, current_user
@@ -20,7 +21,7 @@ def _get_period_stats(user_id, start, end):
     while current <= end:
         day_key = day_map[current.weekday()]
         for h in habits:
-            if h.frequency == 'daily' or (h.frequency == 'weekly' and day_key in (h.target_days or [])):
+            if current >= h._start_date() and h.is_scheduled_on(current):
                 total_possible += 1
                 if h.is_completed_on(current):
                     total_done += 1
@@ -123,25 +124,8 @@ def _forecast_goals(user_id):
     forecasts = []
     for g in goals:
         progress = g.progress
-        if g.deadline:
-            days_left = (g.deadline - date.today()).days
-            if days_left > 0 and progress > 0:
-                days_to_100 = int((100 - progress) / progress * 30) if progress > 0 else 999
-                on_track = days_to_100 <= days_left
-                forecasts.append({
-                    'goal': g, 'progress': progress, 'days_left': days_left,
-                    'on_track': on_track, 'estimated_days': days_to_100,
-                })
-            else:
-                forecasts.append({
-                    'goal': g, 'progress': progress, 'days_left': max(days_left, 0),
-                    'on_track': days_left > 0, 'estimated_days': None,
-                })
-        else:
-            forecasts.append({
-                'goal': g, 'progress': progress, 'days_left': None,
-                'on_track': True, 'estimated_days': None,
-            })
+        days_left = (g.deadline - date.today()).days if g.deadline else None
+        forecasts.append({'goal': g, 'progress': progress, 'days_left': days_left})
     return forecasts
 
 
@@ -159,18 +143,16 @@ def generate_pdf():
     pdf = FPDF()
     pdf.add_page()
 
-    font_dir = 'C:/Windows/Fonts/'
-    try:
-        pdf.add_font('DejaVu', '', font_dir + 'DejaVuSans.ttf', uni=True)
-        pdf.add_font('DejaVu', 'B', font_dir + 'DejaVuSans-Bold.ttf', uni=True)
-        font_name = 'DejaVu'
-    except Exception:
-        try:
-            pdf.add_font('Arial', '', font_dir + 'arial.ttf', uni=True)
-            pdf.add_font('Arial', 'B', font_dir + 'arialbd.ttf', uni=True)
-            font_name = 'Arial'
-        except Exception:
-            font_name = 'Helvetica'
+    fonts = [('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),
+             ('C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf')]
+    for regular, bold in fonts:
+        if Path(regular).is_file() and Path(bold).is_file():
+            pdf.add_font('Report', '', regular)
+            pdf.add_font('Report', 'B', bold)
+            break
+    else:
+        raise RuntimeError('Для PDF требуется шрифт DejaVu Sans или Arial с поддержкой кириллицы.')
+    font_name = 'Report'
 
     pdf.set_font(font_name, 'B', 20)
     pdf.cell(0, 15, 'HabitFlow', new_x='LMARGIN', new_y='NEXT', align='C')

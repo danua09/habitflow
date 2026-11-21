@@ -54,6 +54,7 @@ def grant_achievement(user_id, code):
     )
     db.session.add(notification)
     db.session.commit()
+    _email_notification(notification)
     return ua
 
 
@@ -125,7 +126,16 @@ def create_notification(user_id, title, message='', type='system', link=None):
     n = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
     db.session.add(n)
     db.session.commit()
+    _email_notification(n)
     return n
+
+
+def _email_notification(notification):
+    from app.models.user import User
+    from app.mail import mail_configured, send_email
+    user = db.session.get(User, notification.user_id)
+    if user and user.is_active_user and user.email_notifications and mail_configured():
+        send_email(user.email, 'Уведомление HabitFlow', f'{notification.title}\n\n{notification.message or ""}')
 
 
 def get_unread_count(user_id):
