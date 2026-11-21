@@ -35,40 +35,6 @@
 </div>
 {% endif %}
 
-{% if challenges %}
-<div class="mb-4">
-    <h5 style="font-size:1rem;font-weight:600;color:var(--text-dark);">Активные челленджи</h5>
-    {% for c in challenges %}
-    <div class="habit-card" style="border-left:3px solid #ef4444;">
-        <div class="habit-info">
-            <div class="habit-name">
-                <i class="bi bi-lightning-fill" style="color:#ef4444;"></i>
-                {{ c.habit_name }}
-            </div>
-            <div style="font-size:0.8rem;color:var(--text-muted);">
-                {{ c.creator.username }} vs {{ c.opponent.username }}
-                {% if c.status == 'pending' %}<span class="badge-category" style="background:var(--accent-light);color:#92400e;">ожидает</span>{% endif %}
-                {% if c.status == 'active' %}<span class="badge-category" style="background:var(--success-light);color:var(--success);">активен</span>{% endif %}
-            </div>
-        </div>
-        <div class="d-flex gap-2">
-            {% if c.status == 'pending' and c.opponent_id == current_user.id %}
-            <form method="POST" action="{{ url_for('social.accept_challenge', challenge_id=c.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-primary btn-sm">Принять</button>
-            </form>
-            <form method="POST" action="{{ url_for('social.decline_challenge', challenge_id=c.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-outline-secondary btn-sm">Отклонить</button>
-            </form>
-            {% else %}
-            <a href="{{ url_for('social.view_challenge', challenge_id=c.id) }}" class="btn btn-outline-primary btn-sm">Подробнее</a>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
 <div class="row">
     <div class="col-md-5">
@@ -84,9 +50,6 @@
                 {% if friend.bio %}<div style="font-size:0.75rem;color:var(--text-muted);">{{ friend.bio[:50] }}</div>{% endif %}
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('social.create_challenge', friend_id=friend.id) }}" class="btn btn-outline-primary btn-sm" title="Челлендж">
-                    <i class="bi bi-lightning"></i>
-                </a>
                 <form method="POST" action="{{ url_for('social.remove_friend', user_id=friend.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="btn btn-outline-secondary btn-sm" title="Удалить" onclick="return confirm('Удалить из друзей?')">
@@ -114,7 +77,6 @@
                 <div class="notif-icon" style="background:var(--accent-light);color:var(--accent);">
                     {% if a.action == 'check' %}<i class="bi bi-check-circle"></i>
                     {% elif a.action == 'friend' %}<i class="bi bi-people-fill"></i>
-                    {% elif a.action == 'challenge' %}<i class="bi bi-lightning-fill"></i>
                     {% else %}<i class="bi bi-activity"></i>{% endif %}
                 </div>
                 <div class="notif-content">

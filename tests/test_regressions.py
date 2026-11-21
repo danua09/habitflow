@@ -113,3 +113,13 @@ def test_weekly_template_copies_selected_days(client, user):
     assert template.items.first().target_days == ['mon', 'fri']
     client.post(f'/templates/{template.id}/apply')
     assert user.habits.filter_by(name='Walk').first().target_days == ['mon', 'fri']
+
+
+def test_challenges_are_removed_from_social_section(client, user):
+    login(client, user.email)
+    response = client.get('/social/')
+    assert response.status_code == 200
+    assert 'челлендж'.encode() not in response.data.lower()
+    assert client.get('/social/challenge/create/1').status_code == 404
+    assert client.get('/social/challenge/1').status_code == 404
+    assert client.post('/social/challenge/1/accept').status_code == 404
