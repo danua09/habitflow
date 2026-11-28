@@ -5,7 +5,9 @@ The refresh token is printed once for manual entry into Render; it is never
 written to disk or logged by this script.
 """
 import http.server
+import base64
 import getpass
+import hashlib
 import json
 import secrets
 import socket
@@ -28,6 +30,8 @@ def main():
         raise SystemExit('Client ID и Client secret обязательны.')
 
     state = secrets.token_urlsafe(32)
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode('ascii')).digest()).rstrip(b'=').decode('ascii')
     result = {}
     ready = threading.Event()
 
@@ -71,6 +75,8 @@ def main():
         'prompt': 'consent',
         'include_granted_scopes': 'true',
         'state': state,
+        'code_challenge': challenge,
+        'code_challenge_method': 'S256',
     })
     authorization_url = f'{AUTH_URL}?{query}'
     print('\nОткроется Google. Проверь аккаунт и разрешение только на отправку писем.')
@@ -89,12 +95,20 @@ def main():
         'code': result['code'],
         'redirect_uri': redirect_uri,
         'grant_type': 'authorization_code',
+        'code_verifier': verifier,
     }).encode('ascii'), headers={'Content-Type': 'application/x-www-form-urlencoded'})
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
             tokens = json.load(response)
+    except urllib.error.HTTPError as exc:
+        try:
+            error_code = json.loads(exc.read()).get('error', 'unknown_error')
+        except (ValueError, OSError):
+            error_code = 'unknown_error'
+        raise SystemExit(f'Google отклонил обмен кода: HTTP {exc.code}, {error_code}. '
+                         'Секреты и ссылку авторизации не присылай.') from None
     except (urllib.error.URLError, ValueError) as exc:
-        raise SystemExit('Не удалось обменять код на токен. Проверь Desktop client и попробуй снова.') from exc
+        raise SystemExit('Не удалось получить ответ Google. Проверь подключение и попробуй снова.') from exc
 
     refresh_token = tokens.get('refresh_token')
     if not refresh_token:
