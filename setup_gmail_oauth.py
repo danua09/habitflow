@@ -11,6 +11,7 @@ import hashlib
 import json
 import secrets
 import socket
+import sys
 import threading
 import urllib.error
 import urllib.parse
@@ -23,7 +24,40 @@ AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 
+def check_existing_token():
+    client_id = input('OAuth Client ID: ').strip()
+    client_secret = getpass.getpass('OAuth Client secret (ввод скрыт): ').strip()
+    refresh_token = getpass.getpass('Gmail refresh token (ввод скрыт): ').strip()
+    if not all((client_id, client_secret, refresh_token)):
+        raise SystemExit('Все три значения обязательны.')
+    request = urllib.request.Request(TOKEN_URL, data=urllib.parse.urlencode({
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'refresh_token': refresh_token,
+        'grant_type': 'refresh_token',
+    }).encode('ascii'), headers={'Content-Type': 'application/x-www-form-urlencoded'})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = json.load(response)
+    except urllib.error.HTTPError as exc:
+        try:
+            code = json.loads(exc.read()).get('error', 'unknown_error')
+        except (ValueError, OSError):
+            code = 'unknown_error'
+        raise SystemExit(f'Проверка не прошла: HTTP {exc.code}, {code}. Не отправляй токен в чат.') from None
+    except (urllib.error.URLError, ValueError):
+        raise SystemExit('Не удалось получить ответ Google. Проверь подключение.') from None
+    if not payload.get('access_token'):
+        raise SystemExit('Google не вернул access token.')
+    print('Токен действителен для этого OAuth-клиента.')
+
+
 def main():
+    if sys.argv[1:] == ['--check']:
+        check_existing_token()
+        return
+    if sys.argv[1:]:
+        raise SystemExit('Использование: python setup_gmail_oauth.py [--check]')
     client_id = input('Вставь OAuth Client ID (он не секретный): ').strip()
     client_secret = getpass.getpass('Вставь OAuth Client secret (ввод скрыт): ').strip()
     if not client_id or not client_secret:
