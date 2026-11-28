@@ -1,16 +1,20 @@
-"""Transactional email, enabled only when an SMTP service is configured."""
+"""Transactional email via SMTP, Resend or Gmail API."""
+import base64
 import smtplib
 import ssl
 import json
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 from email.message import EmailMessage
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 
 from flask import current_app
 
 
 def mail_configured():
+    if current_app.config.get('EMAIL_PROVIDER') == 'gmail':
+        return all(current_app.config.get(key) for key in (
+            'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'MAIL_FROM'))
     if current_app.config.get('EMAIL_PROVIDER') == 'resend':
         return bool(current_app.config.get('RESEND_API_KEY') and current_app.config.get('MAIL_FROM'))
     return bool(current_app.config.get('SMTP_HOST') and current_app.config.get('SMTP_FROM') and
@@ -32,6 +36,8 @@ def public_base_url():
 def send_email(recipient, subject, body):
     if not mail_configured():
         return False
+    if current_app.config.get('EMAIL_PROVIDER') == 'gmail':
+        return _send_gmail(recipient, subject, body)
     if current_app.config.get('EMAIL_PROVIDER') == 'resend':
         data = json.dumps({'from': current_app.config['MAIL_FROM'], 'to': [recipient],
                            'subject': subject, 'text': body}).encode('utf-8')
@@ -59,4 +65,33 @@ def send_email(recipient, subject, body):
         return True
     except (OSError, smtplib.SMTPException):
         current_app.logger.warning('Не удалось отправить электронное письмо.')
+        return False
+
+
+def _send_gmail(recipient, subject, body):
+    """Refresh OAuth credentials server-side; never log tokens or message contents."""
+    try:
+        message = EmailMessage()
+        message['From'] = current_app.config['MAIL_FROM']
+        message['To'] = recipient
+        message['Subject'] = subject
+        message.set_content(body)
+        token_request = Request('https://oauth2.googleapis.com/token', data=urlencode({
+            'client_id': current_app.config['GMAIL_CLIENT_ID'],
+            'client_secret': current_app.config['GMAIL_CLIENT_SECRET'],
+            'refresh_token': current_app.config['GMAIL_REFRESH_TOKEN'],
+            'grant_type': 'refresh_token',
+        }).encode('ascii'), method='POST')
+        with urlopen(token_request, timeout=10) as response:
+            access_token = json.load(response)['access_token']
+        payload = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode('ascii')}
+        request = Request('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+                          data=json.dumps(payload).encode('utf-8'), method='POST', headers={
+                              'Authorization': 'Bearer ' + access_token,
+                              'Content-Type': 'application/json',
+                          })
+        with urlopen(request, timeout=10) as response:
+            return 200 <= response.status < 300
+    except (OSError, URLError, ValueError, KeyError, TypeError):
+        current_app.logger.warning('Не удалось отправить письмо через Gmail API.')
         return False
