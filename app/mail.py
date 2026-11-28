@@ -4,7 +4,7 @@ import smtplib
 import ssl
 import json
 from urllib.request import Request, urlopen
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from email.message import EmailMessage
 from urllib.parse import urlsplit, urlencode
 
@@ -70,6 +70,7 @@ def send_email(recipient, subject, body):
 
 def _send_gmail(recipient, subject, body):
     """Refresh OAuth credentials server-side; never log tokens or message contents."""
+    phase = 'refresh'
     try:
         message = EmailMessage()
         message['From'] = current_app.config['MAIL_FROM']
@@ -84,6 +85,7 @@ def _send_gmail(recipient, subject, body):
         }).encode('ascii'), method='POST')
         with urlopen(token_request, timeout=10) as response:
             access_token = json.load(response)['access_token']
+        phase = 'send'
         payload = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode('ascii')}
         request = Request('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
                           data=json.dumps(payload).encode('utf-8'), method='POST', headers={
@@ -92,6 +94,15 @@ def _send_gmail(recipient, subject, body):
                           })
         with urlopen(request, timeout=10) as response:
             return 200 <= response.status < 300
+    except HTTPError as exc:
+        try:
+            payload = json.load(exc)
+            error = payload.get('error', 'unknown')
+            code = error.get('status', 'unknown') if isinstance(error, dict) else str(error)
+        except (ValueError, OSError, TypeError):
+            code = 'unknown'
+        current_app.logger.warning('Gmail API %s failed: HTTP %s, %s', phase, exc.code, code)
+        return False
     except (OSError, URLError, ValueError, KeyError, TypeError):
-        current_app.logger.warning('Не удалось отправить письмо через Gmail API.')
+        current_app.logger.warning('Gmail API %s failed without HTTP response.', phase)
         return False
