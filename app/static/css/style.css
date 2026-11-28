@@ -470,6 +470,10 @@ body {
     max-width: 400px;
 }
 
+.auth-back-link {
+    text-underline-offset: 0.2em;
+}
+
 .auth-title {
     text-align: center;
     font-size: 1.4rem;
