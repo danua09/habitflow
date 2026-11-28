@@ -75,7 +75,7 @@ def create_app(config_overrides=None):
     def security_headers(response):
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
-        response.headers.setdefault('Referrer-Policy', 'no-referrer')
+        response.headers.setdefault('Referrer-Policy', 'same-origin')
         return response
 
     @app.route('/')
